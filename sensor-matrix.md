@@ -19,7 +19,7 @@
 Огромным достоинством датчика `GY-906` является то, что он не требует погружения в воду и может быть смонтирован прямо в корпусе с вентиляторами. Однако, точность показаний данного датчика очень сильно зависит от градиентов температур (подробности см. ["Thermal/Mechanical design recommendations - IR products"](https://www.melexis.com/en/documents/documentation/application-notes/application-note-thermal-mechanical-design-recommendations-ir-products)).
 
 <p align='center'>
-<img src='https://user-images.githubusercontent.com/802583/176477094-f5bf7147-70e4-43d1-a71e-466fc770dcf4.jpg' alt='GY-906 (MLX90614ESF)'>
+<img src='https://user-images.githubusercontent.com/802583/176477094-f5bf7147-70e4-43d1-a71e-466fc770dcf4.jpg' alt='Инфракрасный датчик температуры GY-906 (MLX90614ESF)' title='Инфракрасный датчик температуры GY-906 (MLX90614ESF)'>
 </p>
 
 На экспериментальном стенде возмущающими воздействиями на показания оказались:
@@ -43,8 +43,8 @@
 Недорогой, хорошо зарекомендовавший себя датчик. Может продаваться как в металлических, так и в пластиковых гильзах (в исполнении `Sonoff` так же комплектуется 4-pin 3.5 мм. штекером). По некоторым отзывам металлические гильзы в воде быстро деградируют, да и выглядят менее эстетично нежели пластиковые. При этом исполнение в пластиковой гильзе тяжелее найти (возможное ключевое слово `Taidacent`) и они сильно дороже.
 
 <p align='center'>
-<img src='https://user-images.githubusercontent.com/802583/176454294-fe8db34e-dad3-4ecc-89b3-c7a3c1a94082.jpg' alt='Taidacent DS18B20'>
-<img src='https://user-images.githubusercontent.com/802583/176454288-ba2da170-ebb5-49fd-b607-00f94f304944.jpg' alt='Sonoff DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176454294-fe8db34e-dad3-4ecc-89b3-c7a3c1a94082.jpg' alt='Датчик температуры Taidacent DS18B20' title='Датчик температуры Taidacent DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176454288-ba2da170-ebb5-49fd-b607-00f94f304944.jpg' alt='Датчик температуры Sonoff DS18B20' title='Датчик температуры Sonoff DS18B20'>
 </p>
 
 ## Прочие
