@@ -41,8 +41,8 @@
 В качестве датчика температуры воды [рекомендуется](sensor-matrix.md) датчик `DS18B20` в пластиковом герметичном исполнении.
 
 <p align='center'>
-<img src='https://user-images.githubusercontent.com/802583/176061942-7fc1686b-409d-42d3-9b99-d59b6e7c94f8.jpg' alt='Taidacent DS18B20'>
-<img src='https://user-images.githubusercontent.com/802583/176062148-31206d07-163a-4ebf-9203-18e019fcc9f4.jpg' alt='Sonoff DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176454294-fe8db34e-dad3-4ecc-89b3-c7a3c1a94082.jpg' alt='Taidacent DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176454288-ba2da170-ebb5-49fd-b607-00f94f304944.jpg' alt='Sonoff DS18B20'>
 </p>
 
 Дополнительно для подключения датчика потребуются плата-адаптер с подтягивающим резистором, 4-pin разъем `PJ-392A` и 4-pin коннектор 3.5 мм. Разъем и коннектор опциональны, но с ними удобно отключать датчик при обслуживании. Распайка коннектора, совместимая с датчиками `Sonoff`, приведена в [схеме](schema.md).
