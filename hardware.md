@@ -38,7 +38,20 @@
 <img src='https://user-images.githubusercontent.com/802583/176435924-344d8954-a09b-454f-b4db-42d6dd31335e.jpg' alt='коннкетор питания 5.5 x 2.1 мм.'>
 </p>
 
-* Датчик температуры воды. [Рекомендуется](sensor-matrix.md) датчик `DS18B20` в пластиковом герметичном исполнении плюс плата-адаптер с подтягивающим резистором, 4-pin разъем `PJ-392A` и 4-pin коннектор 3.5 мм. (разъем и коннектор опциональны, но с ними удобно отключать датчик при обслуживании).
+В качестве датчика температуры воды [рекомендуется](sensor-matrix.md) датчик `DS18B20` в пластиковом герметичном исполнении.
+
+<p align='center'>
+<img src='https://user-images.githubusercontent.com/802583/176061942-7fc1686b-409d-42d3-9b99-d59b6e7c94f8.jpg' alt='Taidacent DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176062148-31206d07-163a-4ebf-9203-18e019fcc9f4.jpg' alt='Sonoff DS18B20'>
+</p>
+
+Дополнительно для подключения датчика потребуются плата-адаптер с подтягивающим резистором, 4-pin разъем `PJ-392A` и 4-pin коннектор 3.5 мм. Разъем и коннектор опциональны, но с ними удобно отключать датчик при обслуживании. Распайка коннектора, совместимая с датчиками `Sonoff`, приведена в [схеме](schema.md).
+
+<p align='center'>
+<img src='https://user-images.githubusercontent.com/802583/176441328-9a235204-cc30-41e2-a85c-87fbc4d21cda.jpg' alt='адаптер DS18B20'>
+<img src='https://user-images.githubusercontent.com/802583/176441329-f8b0a781-8918-4035-a8ab-2a3fd13594ce.jpg' alt='4-pin аудио разъем 3.5 мм.'>
+<img src='https://user-images.githubusercontent.com/802583/176441324-5fbc9af7-0d9f-4e32-9823-341c685d4e34.jpg' alt='4-pin аудио коннкетор 3.5 мм.'>
+</p>
 
 Опционально:
 
