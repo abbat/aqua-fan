@@ -68,7 +68,7 @@ void httpStatus() {
 }
 //----------------------------------------------------------------------------------------------
 // experimental
-void httpSet() {
+void httpSettings() {
   if (web_server.method() != HTTP_POST) {
     web_server.send(405, "text/plain", "Method Not Allowed");
     return;
@@ -122,8 +122,8 @@ bool wifiSetup() {
   configTime("UTC", "pool.ntp.org");
 
   // init webserver
-  web_server.on("/status", httpStatus);
-  web_server.on("/set",    httpSet);
+  web_server.on("/status",   httpStatus);
+  web_server.on("/settings", httpSettings);
   web_server.onNotFound(http404);
   web_server.begin();
 
