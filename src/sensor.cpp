@@ -44,7 +44,7 @@
     #ifdef AQUA_FAN_STANDALONE
       #define ONE_WIRE_PIN A3
     #else
-      // for eps8266 do not use D0 and D8
+      // for esp8266 do not use D0 and D8
       #define ONE_WIRE_PIN D3
     #endif
   #endif
