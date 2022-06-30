@@ -17,9 +17,11 @@ void setup() {
   }
 
 #ifndef AQUA_FAN_SLAVE
-  if (displaySetup() == false) {
-    // TODO: beep error!!!
-  }
+  #ifdef DISPLAY_TYPE
+    if (displaySetup() == false) {
+      // TODO: beep error!!!
+    }
+  #endif
 
   if (sensorSetup() == false) {
     // TODO: display error!!!
@@ -34,9 +36,11 @@ void setup() {
     // TODO: display error!!!
   }
 
-  if (buttonSetup() == false) {
-    // TODO: beep error!!!
-  }
+  #ifdef DISPLAY_TYPE
+    if (buttonSetup() == false) {
+      // TODO: beep error!!!
+    }
+  #endif
 #endif   // !AQUA_FAN_SLAVE
 
 #ifdef AQUA_FAN_MASTER
@@ -46,7 +50,9 @@ void setup() {
 #endif
 
 #ifndef AQUA_FAN_SLAVE
-  displayClear();
+  #ifdef DISPLAY_TYPE
+    displayClear();
+  #endif
 #endif   // !AQUA_FAN_SLAVE
 }
 //----------------------------------------------------------------------------------------------
@@ -57,8 +63,12 @@ void loop() {
 #ifndef AQUA_FAN_SLAVE
   sensorLoop();
   controllerLoop();
-  buttonLoop();
-  displayLoop();
+
+  #ifdef DISPLAY_TYPE
+    buttonLoop();
+    displayLoop();
+  #endif
+
 #endif   // !AQUA_FAN_SLAVE
 
 #ifdef AQUA_FAN_MASTER

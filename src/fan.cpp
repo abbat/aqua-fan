@@ -17,15 +17,42 @@
 #define EI_NOTEXTERNAL   /* we do not use external interrupts */
 #include <EnableInterrupt.h>
 //----------------------------------------------------------------------------------------------
+// fan pwm pins (only D3, D9 and D10 can be used)
+#define FAN0_PWM 3
+#define FAN1_PWM 9
+#define FAN2_PWM 10
 
-#if defined(FAN0_PWM) && defined(FAN1_PWM) && defined(FAN2_PWM)
+// fan tac pins (different PCINT recommended)
+// - PCINT0 - D8, D11, D12
+// - PCINT2 - D4, D6, D7
+// - PCINT1 - A0, A1, A2, A3
+#ifndef FAN0_TAC
+  #define FAN0_TAC 4
+#endif
+
+#ifndef FAN1_TAC
+  #define FAN1_TAC 8
+#endif
+
+#ifndef FAN2_TAC
+  #define FAN2_TAC 11
+#endif
+
+#ifndef FAN_COUNT
   #define FAN_COUNT 3
-#elif defined(FAN0_PWM) && defined(FAN1_PWM)
-  #define FAN_COUNT 2
-#elif defined(FAN0_PWM)
-  #define FAN_COUNT 1
-#else
+#endif
+
+#if FAN_COUNT < 1 || FAN_COUNT > 3
   #error "Fan count must be from 1 to 3"
+#endif
+
+// fan pwm frequency, Hz (25kHz recommended, can be from 21kHz to 28kHz)
+#ifndef FAN_PWM_FREQ
+  #define FAN_PWM_FREQ 25000
+#endif
+
+#if FAN_PWM_FREQ < 21000 || FAN_PWM_FREQ > 28000
+  #error "FAN_PWM_FREQ can be from 21kHz to 28kHz"
 #endif
 
 // slave or standalone single fan status

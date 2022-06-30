@@ -2,6 +2,8 @@
 //----------------------------------------------------------------------------------------------
 #ifndef AQUA_FAN_SLAVE
 //----------------------------------------------------------------------------------------------
+#ifdef DISPLAY_TYPE
+//----------------------------------------------------------------------------------------------
 #include "button.h"
 #include "sensor.h"
 #include "eeprom.h"
@@ -36,9 +38,7 @@ static byte screen_id = SCREEN_ID_DEFAULT;
 // timer for reset screen to default
 static SoftTimer screen_timer;
 
-#ifndef DISPLAY_TYPE
-  #warning "Undefined display type"
-#elif DISPLAY_TYPE == DISPLAY_SSD1306_128_64
+#if DISPLAY_TYPE == DISPLAY_SSD1306_128_64
 
   #define DISPLAY_TYPE_SSD1306
 
@@ -141,8 +141,6 @@ void displayClear() {
   #ifdef DISPLAY_TYPE_SSD1306
     display.clear();
     display.rect(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1, OLED_STROKE);
-  #else
-    #error "Unsupported display type"
   #endif
 }
 //----------------------------------------------------------------------------------------------
@@ -384,6 +382,8 @@ void displayLoop() {
     displayDefaultSetup();
   }
 }
+//----------------------------------------------------------------------------------------------
+#endif   // DISPLAY_TYPE
 //----------------------------------------------------------------------------------------------
 #endif   // !AQUA_FAN_SLAVE
 //----------------------------------------------------------------------------------------------
