@@ -19,6 +19,18 @@
 // maximum water temperature for errors control, °C
 #define WATER_TEMPERATURE_MAX_VALUE   50
 //----------------------------------------------------------------------------------------------
+// minimum humidity for errors control, %
+#define HUMIDITY_MIN_VALUE  0
+// maximum humidity for errors control, %
+#define HUMIDITY_MAX_VALUE  100
+//----------------------------------------------------------------------------------------------
+// minimum pressure for errors control, Pa (~637.5 mm Hg)
+#define PRESSURE_MIN_VALUE  85000
+// maximum pressure for errors control, Pa (~817.5 mm Hg)
+#define PRESSURE_MAX_VALUE  109000
+// Pa in mm Hg
+#define PRESSURE_PA_IN_MMHG 133.3223684
+//----------------------------------------------------------------------------------------------
 #if defined(WATER_TEMPERATURE_SENSOR) && !defined(PRIMARY_WATER_TEMPERATURE_SENSOR)
   #define PRIMARY_WATER_TEMPERATURE_SENSOR WATER_TEMPERATURE_SENSOR
 #endif
@@ -70,7 +82,7 @@
   static double        ds18b20_water_temperature_shift    = DS18B20_WATER_TEMPERATURE_SHIFT;
   static double        ds18b20_water_temperature_filtered = WATER_TEMPERATURE_NULL_VALUE;
 
-#endif
+#endif   // DS18B20
 
 // MLX90614
 #if PRIMARY_WATER_TEMPERATURE_SENSOR   == WATER_TEMPERATURE_SENSOR_MLX90614 || \
@@ -108,7 +120,43 @@
   static double mlx90614_ambient_temperature       = AMBIENT_TEMPERATURE_NULL_VALUE;
   static double mlx90614_ambient_temperature_shift = MLX90614_AMBIENT_TEMPERATURE_SHIFT;
 
-#endif
+#endif   // MLX90614
+
+// BME280
+#if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_BME280 || \
+    EXTERNAL_SENSOR_1 == EXTERNAL_SENSOR_BME280 || \
+    EXTERNAL_SENSOR_2 == EXTERNAL_SENSOR_BME280
+
+  #define HAVE_SLOW_SENSOR
+  #define HAVE_BME280
+
+  // https://github.com/adafruit/Adafruit_BME280_Library
+  #include <Adafruit_BME280.h>
+
+  static Adafruit_BME280 bme280_sensor;
+
+  #ifndef BME280_AMBIENT_TEMPERATURE_SHIFT
+    #define BME280_AMBIENT_TEMPERATURE_SHIFT 0
+  #endif
+
+  static double bme280_temperature       = AMBIENT_TEMPERATURE_NULL_VALUE;
+  static double bme280_temperature_shift = BME280_AMBIENT_TEMPERATURE_SHIFT;
+
+  #ifndef BME280_HUMIDITY_SHIFT
+    #define BME280_HUMIDITY_SHIFT 0
+  #endif
+
+  static double bme280_humidity       = HUMIDITY_NULL_VALUE;
+  static double bme280_humidity_shift = BME280_HUMIDITY_SHIFT;
+
+  #ifndef BME280_PRESSURE_SHIFT
+    #define BME280_PRESSURE_SHIFT 0
+  #endif
+
+  static double bme280_pressure       = PRESSURE_NULL_VALUE;
+  static double bme280_pressure_shift = BME280_PRESSURE_SHIFT;
+
+#endif   // BME280
 
 //----------------------------------------------------------------------------------------------
 // timers
@@ -134,11 +182,33 @@
   #endif
 #endif
 
+#ifdef HAVE_SLOW_SENSOR
+  // timer for slow sensors
+  static SoftTimer slow_sensor_timer;
+
+  #ifndef SLOW_SENSOR_UPDATE_INTERVAL
+    // interval for slow sensor timer, ms
+    #define SLOW_SENSOR_UPDATE_INTERVAL 15000
+  #endif
+#endif
+
 //----------------------------------------------------------------------------------------------
 
 bool sensorSetup() {
 
   bool result = true;
+
+  #ifdef HAVE_DS18B20
+    ds18b20_sensors.begin();
+
+    // the default resolution at power-up is 12-bit.
+    // 9 / 10 / 11 / 12 bit => 0.5 / 0.25 / 0.125 / 0.0625°C
+    if (ds18b20_sensors.getAddress(ds18b20_water_address, DS18B20_WATER_TEMPERATURE_SENSOR_INDEX) == false) {
+      result = false;
+    } else {
+      ds18b20_sensors.setResolution(ds18b20_water_address, 12);
+    }
+  #endif   // HAVE_DS18B20
 
   #ifdef HAVE_MLX90614
     if (mlx90614_sensor.begin() == false) {
@@ -156,20 +226,23 @@ bool sensorSetup() {
       }
        */
     }
-  #endif
+  #endif   // HAVE_MLX90614
 
-  #ifdef HAVE_DS18B20
-    ds18b20_sensors.begin();
-
-    // the default resolution at power-up is 12-bit.
-    // 9 / 10 / 11 / 12 bit => 0.5 / 0.25 / 0.125 / 0.0625°C
-    if (ds18b20_sensors.getAddress(ds18b20_water_address, DS18B20_WATER_TEMPERATURE_SENSOR_INDEX) == false) {
+  #ifdef HAVE_BME280
+    if (bme280_sensor.begin(BME280_ADDRESS_ALTERNATE) == false) {
       result = false;
     } else {
-      ds18b20_sensors.setResolution(ds18b20_water_address, 12);
+      // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
+      bme280_sensor.setSampling(
+          Adafruit_BME280::MODE_NORMAL,
+          Adafruit_BME280::SAMPLING_X1,   // temperature
+          Adafruit_BME280::SAMPLING_X1,   // pressure
+          Adafruit_BME280::SAMPLING_X1,   // humidity
+          Adafruit_BME280::FILTER_X4,
+          Adafruit_BME280::STANDBY_MS_1000
+      );
     }
-
-  #endif
+  #endif   // HAVE_BME280
 
   #ifdef HAVE_FAST_SENSOR
     fast_sensor_timer.setTimeOutTime(FAST_SENSOR_UPDATE_INTERVAL);
@@ -179,6 +252,11 @@ bool sensorSetup() {
   #ifdef HAVE_STANDARD_SENSOR
     standard_sensor_timer.setTimeOutTime(STANDARD_SENSOR_UPDATE_INTERVAL);
     standard_sensor_timer.reset();
+  #endif
+
+  #ifdef HAVE_SLOW_SENSOR
+    slow_sensor_timer.setTimeOutTime(SLOW_SENSOR_UPDATE_INTERVAL);
+    slow_sensor_timer.reset();
   #endif
 
   return result;
@@ -209,6 +287,31 @@ double ambientTemperatureFilter(double current, double previous, byte filter) {
   return result;
 }
 #endif   // HAVE_MLX90614
+//----------------------------------------------------------------------------------------------
+
+#ifdef HAVE_SLOW_SENSOR
+void updateSlowSensors() {
+  #ifdef HAVE_BME280
+
+    // TODO: sometimes strange values - test for NaN?
+    bme280_temperature = bme280_sensor.readTemperature() + bme280_temperature_shift;
+    if (bme280_temperature < AMBIENT_TEMPERATURE_MIN_VALUE || bme280_temperature > AMBIENT_TEMPERATURE_MAX_VALUE) {
+      bme280_temperature = AMBIENT_TEMPERATURE_NULL_VALUE;
+    }
+
+    bme280_humidity = bme280_sensor.readHumidity() + bme280_humidity_shift;
+    if (bme280_humidity < HUMIDITY_MIN_VALUE || bme280_humidity > HUMIDITY_MAX_VALUE) {
+      bme280_humidity = HUMIDITY_NULL_VALUE;
+    }
+
+    bme280_pressure = bme280_sensor.readPressure() + bme280_pressure_shift;
+    if (bme280_pressure < PRESSURE_MIN_VALUE || bme280_pressure > PRESSURE_MAX_VALUE) {
+      bme280_pressure = PRESSURE_NULL_VALUE;
+    }
+
+  #endif   // HAVE_BME280
+}
+#endif   // HAVE_SLOW_SENSOR
 //----------------------------------------------------------------------------------------------
 
 #ifdef HAVE_STANDARD_SENSOR
@@ -293,6 +396,13 @@ void updateFastSensors() {
 //----------------------------------------------------------------------------------------------
 
 void sensorLoop() {
+  #ifdef HAVE_SLOW_SENSOR
+    if (slow_sensor_timer.hasTimedOut() == true) {
+      updateSlowSensors();
+      slow_sensor_timer.reset();
+    }
+  #endif
+
   #ifdef HAVE_STANDARD_SENSOR
     if (standard_sensor_timer.hasTimedOut() == true) {
       updateStandardSensors();
@@ -322,10 +432,10 @@ double primaryWaterTemperature() {
 
 double secondaryWaterTemperature() {
   #ifdef SECONDARY_WATER_TEMPERATURE_SENSOR
-    #if SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_MLX90614
-      return mlx90614_object_temperature_filtered;
-    #elif SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
+    #if SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
       return ds18b20_water_temperature_filtered;
+    #elif SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_MLX90614
+      return mlx90614_object_temperature_filtered;
     #else
       #error "Unsupported secondary water temperature sensor"
     #endif
@@ -339,6 +449,23 @@ double secondaryWaterTemperature() {
 //----------------------------------------------------------------------------------------------
 
 void serializeSensors(JsonArray& json_sensors) {
+  #ifdef HAVE_DS18B20
+    if (ds18b20_water_temperature != WATER_TEMPERATURE_NULL_VALUE) {
+      JsonObject json_sensor  = json_sensors.createNestedObject();
+      json_sensor["sensor"]   = "DS18B20";
+      json_sensor["type"]     = "water";
+      json_sensor["value"]    = ds18b20_water_temperature;
+      json_sensor["filtered"] = ds18b20_water_temperature_filtered;
+      json_sensor["unit"]     = "C";
+      json_sensor["role"]     =
+      #if PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
+        "primary";
+      #else
+        "secondary";
+      #endif
+    }
+  #endif   // HAVE_DS18B20
+
   #ifdef HAVE_MLX90614
     if (mlx90614_object_temperature != WATER_TEMPERATURE_NULL_VALUE) {
       JsonObject json_sensor  = json_sensors.createNestedObject();
@@ -365,22 +492,35 @@ void serializeSensors(JsonArray& json_sensors) {
     }
   #endif   // HAVE_MLX90614
 
-  #ifdef HAVE_DS18B20
-    if (ds18b20_water_temperature != WATER_TEMPERATURE_NULL_VALUE) {
-      JsonObject json_sensor  = json_sensors.createNestedObject();
-      json_sensor["sensor"]   = "DS18B20";
-      json_sensor["type"]     = "water";
-      json_sensor["value"]    = ds18b20_water_temperature;
-      json_sensor["filtered"] = ds18b20_water_temperature_filtered;
-      json_sensor["unit"]     = "C";
-      json_sensor["role"]     =
-      #if PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
-        "primary";
-      #else
-        "secondary";
-      #endif
+  #ifdef HAVE_BME280
+    if (bme280_temperature != AMBIENT_TEMPERATURE_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "BME280";
+      json_sensor["type"]    = "ambient";
+      json_sensor["value"]   = bme280_temperature;
+      json_sensor["unit"]    = "C";
+      json_sensor["role"]    = "external";
     }
-  #endif   // HAVE_DS18B20
+
+    if (bme280_humidity != HUMIDITY_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "BME280";
+      json_sensor["type"]    = "humidity";
+      json_sensor["value"]   = bme280_humidity;
+      json_sensor["unit"]    = "%";
+      json_sensor["role"]    = "external";
+    }
+
+    if (bme280_pressure != PRESSURE_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "BME280";
+      json_sensor["type"]    = "pressure";
+      json_sensor["value"]   = bme280_pressure;
+      json_sensor["unit"]    = "Pa";
+      json_sensor["mmhg"]    = word(bme280_pressure / PRESSURE_PA_IN_MMHG);
+      json_sensor["role"]    = "external";
+    }
+  #endif   // HAVE_BME280
 }
 //----------------------------------------------------------------------------------------------
 #endif   // AQUA_FAN_MASTER
