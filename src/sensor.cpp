@@ -46,8 +46,8 @@
 #if PRIMARY_WATER_TEMPERATURE_SENSOR   == WATER_TEMPERATURE_SENSOR_DS18B20 || \
     SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
 
-  #define HAVE_STANDARD_SENSOR
   #define HAVE_DS18B20
+  #define HAVE_STANDARD_SENSOR
 
   // https://github.com/milesburton/Arduino-Temperature-Control-Library
   #include <DallasTemperature.h>
@@ -88,8 +88,8 @@
 #if PRIMARY_WATER_TEMPERATURE_SENSOR   == WATER_TEMPERATURE_SENSOR_MLX90614 || \
     SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_MLX90614
 
-  #define HAVE_FAST_SENSOR
   #define HAVE_MLX90614
+  #define HAVE_FAST_SENSOR
 
   // GY-906 MLX90614-XXX, resolution 0.02°C
   // - BAA - precision ±0.50°C (single zone, 90° FOV)
@@ -122,13 +122,34 @@
 
 #endif   // MLX90614
 
+#ifdef EXTERNAL_SENSOR_0
+  #ifdef EXTERNAL_SENSOR_1
+    #if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_1
+      #error "EXTERNAL_SENSOR_0 and EXTERNAL_SENSOR_1 can not be same"
+    #endif
+  #endif
+  #ifdef EXTERNAL_SENSOR_2
+    #if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_2
+      #error "EXTERNAL_SENSOR_0 and EXTERNAL_SENSOR_2 can not be same"
+    #endif
+  #endif
+#endif
+
+#ifdef EXTERNAL_SENSOR_1
+  #ifdef EXTERNAL_SENSOR_2
+    #if EXTERNAL_SENSOR_1 == EXTERNAL_SENSOR_2
+      #error "EXTERNAL_SENSOR_1 and EXTERNAL_SENSOR_2 can not be same"
+    #endif
+  #endif
+#endif
+
 // BME280
 #if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_BME280 || \
     EXTERNAL_SENSOR_1 == EXTERNAL_SENSOR_BME280 || \
     EXTERNAL_SENSOR_2 == EXTERNAL_SENSOR_BME280
 
-  #define HAVE_SLOW_SENSOR
   #define HAVE_BME280
+  #define HAVE_SLOW_SENSOR
 
   // https://github.com/adafruit/Adafruit_BME280_Library
   #include <Adafruit_BME280.h>
@@ -157,6 +178,35 @@
   static double bme280_pressure_shift = BME280_PRESSURE_SHIFT;
 
 #endif   // BME280
+
+// SHT-3X (30, 31, 35, 85)
+#if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_SHT3X || \
+    EXTERNAL_SENSOR_1 == EXTERNAL_SENSOR_SHT3X || \
+    EXTERNAL_SENSOR_2 == EXTERNAL_SENSOR_SHT3X
+
+  #define HAVE_SHT3X
+  #define HAVE_SLOW_SENSOR
+
+  // https://github.com/Sensirion/arduino-sht
+  #include <SHTSensor.h>
+
+  static SHTSensor sht3x_sensor;
+
+  #ifndef SHT3X_AMBIENT_TEMPERATURE_SHIFT
+    #define SHT3X_AMBIENT_TEMPERATURE_SHIFT 0
+  #endif
+
+  static double sht3x_temperature       = AMBIENT_TEMPERATURE_NULL_VALUE;
+  static double sht3x_temperature_shift = SHT3X_AMBIENT_TEMPERATURE_SHIFT;
+
+  #ifndef SHT3X_HUMIDITY_SHIFT
+    #define SHT3X_HUMIDITY_SHIFT 0
+  #endif
+
+  static double sht3x_humidity       = HUMIDITY_NULL_VALUE;
+  static double sht3x_humidity_shift = SHT3X_HUMIDITY_SHIFT;
+
+#endif   // SHT-3X
 
 //----------------------------------------------------------------------------------------------
 // timers
@@ -244,6 +294,12 @@ bool sensorSetup() {
     }
   #endif   // HAVE_BME280
 
+  #ifdef HAVE_SHT3X
+    if (sht3x_sensor.init() == false || sht3x_sensor.setAccuracy(SHTSensor::SHT_ACCURACY_HIGH) == false) {
+      result = false;
+    }
+  #endif   // HAVE_SHT3X
+
   #ifdef HAVE_FAST_SENSOR
     fast_sensor_timer.setTimeOutTime(FAST_SENSOR_UPDATE_INTERVAL);
     fast_sensor_timer.reset();
@@ -292,7 +348,6 @@ double ambientTemperatureFilter(double current, double previous, byte filter) {
 #ifdef HAVE_SLOW_SENSOR
 void updateSlowSensors() {
   #ifdef HAVE_BME280
-
     // TODO: sometimes strange values - test for NaN?
     bme280_temperature = bme280_sensor.readTemperature() + bme280_temperature_shift;
     if (bme280_temperature < AMBIENT_TEMPERATURE_MIN_VALUE || bme280_temperature > AMBIENT_TEMPERATURE_MAX_VALUE) {
@@ -308,8 +363,21 @@ void updateSlowSensors() {
     if (bme280_pressure < PRESSURE_MIN_VALUE || bme280_pressure > PRESSURE_MAX_VALUE) {
       bme280_pressure = PRESSURE_NULL_VALUE;
     }
-
   #endif   // HAVE_BME280
+
+  #ifdef HAVE_SHT3X
+    if (sht3x_sensor.readSample() != false) {
+      sht3x_temperature = sht3x_sensor.getTemperature() + sht3x_temperature_shift;
+      if (sht3x_temperature < AMBIENT_TEMPERATURE_MIN_VALUE || sht3x_temperature > AMBIENT_TEMPERATURE_MAX_VALUE) {
+        sht3x_temperature = AMBIENT_TEMPERATURE_NULL_VALUE;
+      }
+
+      sht3x_humidity = sht3x_sensor.getHumidity() + sht3x_humidity_shift;
+      if (sht3x_humidity < HUMIDITY_MIN_VALUE || sht3x_humidity > HUMIDITY_MAX_VALUE) {
+        sht3x_humidity = HUMIDITY_NULL_VALUE;
+      }
+    }
+  #endif   // HAVE_SHT3X
 }
 #endif   // HAVE_SLOW_SENSOR
 //----------------------------------------------------------------------------------------------
@@ -317,7 +385,6 @@ void updateSlowSensors() {
 #ifdef HAVE_STANDARD_SENSOR
 void updateStandardSensors() {
   #ifdef HAVE_DS18B20
-
     ds18b20_sensors.requestTemperaturesByAddress(ds18b20_water_address);
 
     ds18b20_water_temperature = ds18b20_sensors.getTempC(ds18b20_water_address);
@@ -332,7 +399,6 @@ void updateStandardSensors() {
     }
 
     ds18b20_water_temperature_filtered = waterTemperatureFilter(ds18b20_water_temperature, ds18b20_water_temperature_filtered, DS18B20_WATER_TEMPERATURE_FILTER);
-
   #endif   // HAVE_DS18B20
 }
 #endif   // HAVE_STANDARD_SENSOR
@@ -521,6 +587,26 @@ void serializeSensors(JsonArray& json_sensors) {
       json_sensor["role"]    = "external";
     }
   #endif   // HAVE_BME280
+
+  #ifdef HAVE_SHT3X
+    if (sht3x_temperature != AMBIENT_TEMPERATURE_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "SHT3X";
+      json_sensor["type"]    = "ambient";
+      json_sensor["value"]   = sht3x_temperature;
+      json_sensor["unit"]    = "C";
+      json_sensor["role"]    = "external";
+    }
+
+    if (sht3x_humidity != HUMIDITY_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "SHT3X";
+      json_sensor["type"]    = "humidity";
+      json_sensor["value"]   = sht3x_humidity;
+      json_sensor["unit"]    = "%";
+      json_sensor["role"]    = "external";
+    }
+  #endif   // HAVE_SHT3X
 }
 //----------------------------------------------------------------------------------------------
 #endif   // AQUA_FAN_MASTER

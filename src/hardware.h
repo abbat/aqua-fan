@@ -41,10 +41,11 @@
 // Sensirion
 #define EXTERNAL_SENSOR_SHT20               0x61   /* ±0.50°C / ±3.0% Rh */
 #define EXTERNAL_SENSOR_SHT21               0x62   /* ±0.30°C / ±2.0% Rh */
-#define EXTERNAL_SENSOR_SHT30               0x63   /* ±0.20°C / ±2.0% Rh */
-#define EXTERNAL_SENSOR_SHT31               0x64   /* ±0.20°C / ±2.0% Rh */
-#define EXTERNAL_SENSOR_SHT35               0x65   /* ±0.10°C / ±1.5% Rh */
-#define EXTERNAL_SENSOR_SHT85               0x66   /* ±0.10°C / ±1.5% Rh */
+#define EXTERNAL_SENSOR_SHT3X               0x63
+#define EXTERNAL_SENSOR_SHT30               EXTERNAL_SENSOR_SHT3X   /* ±0.20°C / ±2.0% Rh */
+#define EXTERNAL_SENSOR_SHT31               EXTERNAL_SENSOR_SHT3X   /* ±0.20°C / ±2.0% Rh */
+#define EXTERNAL_SENSOR_SHT35               EXTERNAL_SENSOR_SHT3X   /* ±0.10°C / ±1.5% Rh */
+#define EXTERNAL_SENSOR_SHT85               EXTERNAL_SENSOR_SHT3X   /* ±0.10°C / ±1.5% Rh */
 
 // Bosch Sensortec
 #define EXTERNAL_SENSOR_BMP180              0x71   /* ±0.50°C / ±1.0 hPA */

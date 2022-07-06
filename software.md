@@ -2,25 +2,26 @@
 
 Исходный код находится в директории `src` проекта. Для сборки используется среда [Arduino IDE](https://www.arduino.cc/en/software) со следующими дополнительными библиотеками:
 
-* [SoftTimers](https://github.com/end2endzone/SoftTimers)
-* [GyverOLED](https://github.com/GyverLibs/GyverOLED)
-* [GyverPWM](https://github.com/GyverLibs/GyverPWM)
-* [EnableInterrupt](https://github.com/GreyGnome/EnableInterrupt)
+* [SoftTimers](https://github.com/end2endzone/SoftTimers);
+* [GyverOLED](https://github.com/GyverLibs/GyverOLED);
+* [GyverPWM](https://github.com/GyverLibs/GyverPWM);
+* [EnableInterrupt](https://github.com/GreyGnome/EnableInterrupt).
 
 Для работы с датчиками температуры используются следующие библиотеки:
 
-* [OneWire](https://www.pjrc.com/teensy/td_libs_OneWire.html) - `DS18B20`
-* [DallasTemperature](https://github.com/milesburton/Arduino-Temperature-Control-Library) - `DS18B20`
-* [Adafruit-MLX90614-Library](https://github.com/adafruit/Adafruit-MLX90614-Library) - `GY-906` (`MLX90614ESF`)
+* [OneWire](https://www.pjrc.com/teensy/td_libs_OneWire.html) - `DS18B20`;
+* [DallasTemperature](https://github.com/milesburton/Arduino-Temperature-Control-Library) - `DS18B20`;
+* [Adafruit-MLX90614-Library](https://github.com/adafruit/Adafruit-MLX90614-Library) - `GY-906` (`MLX90614ESF`).
 
 Для работы в [схеме с двумя платами](schema.md) и поддержкой WiFi используются следующие библиотеки:
 
-* [ESP8266 Arduino](https://arduino-esp8266.readthedocs.io/en/latest/)
-* [ArduinoJSON](https://arduinojson.org/v6/api/)
+* [ESP8266 Arduino](https://arduino-esp8266.readthedocs.io/en/latest/);
+* [ArduinoJSON](https://arduinojson.org/v6/api/).
 
 Для работы с внешними (экспериментальными) датчиками используются следующие библиотеки:
 
-* [Adafruit BME280 Library](https://github.com/adafruit/Adafruit_BME280_Library)
+* [Adafruit BME280 Library](https://github.com/adafruit/Adafruit_BME280_Library) - `BME280`;
+* [arduino-sht](https://github.com/Sensirion/arduino-sht) - `SHT-3X` (`SHT-30`, `SHT-31`, `SHT-35`, `SHT-85`).
 
 Все эти библиотеки могут быть установлены через менеджер библиотек `Arduino IDE`.
 
@@ -45,6 +46,7 @@
 
 * `EXTERNAL_SENSOR_0`, `EXTERNAL_SENSOR_1`, `EXTERNAL_SENSOR_2` - внешние сенсоры (по умолчанию не заданы):
   * `EXTERNAL_SENSOR_BME280` - датчик `BME280` (температура, влажность, давление);
+  * `EXTERNAL_SENSOR_SHT3X` - датчик `SHT-3X` (температура, влажность).
 
 ### Контроллер
 
@@ -75,14 +77,14 @@
 Значения ниже не рекомендуются к изменению:
 
 * `FAST_SENSOR_UPDATE_INTERVAL` - время обновления показаний для "быстрых" датчиков в ms (по умолчанию 1000 = 1s);
-* `STANDARD_SENSOR_UPDATE_INTERVAL` - время обновления показаний для "стандартных" датчиков в ms (по умолчанию 3000 = 3s).
+* `STANDARD_SENSOR_UPDATE_INTERVAL` - время обновления показаний для "стандартных" датчиков в ms (по умолчанию 3000 = 3s);
 * `SLOW_SENSOR_UPDATE_INTERVAL` - время обновления показаний для "медленных" датчиков в ms (по умолчанию 15000 = 15s).
 
 **DS18B20**
 
 * `ONE_WIRE_PIN` - номер `OneWire` пина для датчика (значение по умолчанию зависит от типа [схемы](schema.md), нельзя использовать пины D0 и D8 для платы `ESP8266`);
 * `DS18B20_WATER_TEMPERATURE_SENSOR_INDEX` - индекс датчика (по умолчанию 0);
-* `DS18B20_WATER_TEMPERATURE_SHIFT` - поправка датчика в °C (по умолчанию 0);
+* `DS18B20_WATER_TEMPERATURE_SHIFT` - поправка датчика в °C (по умолчанию 0).
 
 Значения ниже не рекомендуются к изменению:
 
@@ -91,23 +93,28 @@
 **MLX90614**
 
 * `MLX90614_WATER_TEMPERATURE_SHIFT` - поправка датчика температуры объекта в °C (по умолчанию 0);
-* `MLX90614_AMBIENT_TEMPERATURE_SHIFT` - поправка датчика температуры окружающего воздуха в °C (по умолчанию 0);
+* `MLX90614_AMBIENT_TEMPERATURE_SHIFT` - поправка датчика температуры окружающего воздуха в °C (по умолчанию 0).
 
 Значения ниже не рекомендуются к изменению:
 
 * `MLX90614_WATER_TEMPERATURE_FILTER` - коэффициент IIR фильтра (по умолчанию 65 что соответствует ~5 минутам для стабилизации показаний при интервале обновления раз в 1s значения `FAST_SENSOR_UPDATE_INTERVAL`);
 * `MLX90614_WATER_TEMPERATURE_MAX_FAILS` - максимальное число попыток измерения температуры объекта, прежде чем датчик будет переведен в режим ошибки (по умолчанию `MLX90614_AMBIENT_TEMPERATURE_MAX_FAILS`);
-* `MLX90614_AMBIENT_TEMPERATURE_MAX_FAILS` - максимальное число попыток измерения температуры окружающего воздуха, прежде чем датчик будет переведен в режим ошибки (по умолчанию 60000 / `FAST_SENSOR_UPDATE_INTERVAL` = 60 попыток или 1 минута)
+* `MLX90614_AMBIENT_TEMPERATURE_MAX_FAILS` - максимальное число попыток измерения температуры окружающего воздуха, прежде чем датчик будет переведен в режим ошибки (по умолчанию 60000 / `FAST_SENSOR_UPDATE_INTERVAL` = 60 попыток или 1 минута).
 
 **BME280**
 
 * `BME280_AMBIENT_TEMPERATURE_SHIFT` - поправка датчика температуры окружающего воздуха в °C (по умолчанию 0);
 * `BME280_HUMIDITY_SHIFT` - поправка датчика влажности окружающего воздуха в % (по умолчанию 0);
-* `BME280_PRESSURE_SHIFT` - поправка датчика давления окружающего воздуха в Па (по умолчанию 0);
+* `BME280_PRESSURE_SHIFT` - поправка датчика давления окружающего воздуха в Па (по умолчанию 0).
+
+**SHT-3X*
+
+* `SHT3X_AMBIENT_TEMPERATURE_SHIFT` - поправка датчика температуры окружающего воздуха в °C (по умолчанию 0);
+* `SHT3X_HUMIDITY_SHIFT` - поправка датчика влажности окружающего воздуха в % (по умолчанию 0).
 
 ### Вентиляторы
 
-* `FAN_COUNT` - количество вентиляторов (от 1 до 3, по умолчанию 3)
+* `FAN_COUNT` - количество вентиляторов (от 1 до 3, по умолчанию 3).
 
 Значения ниже не рекомендуются к изменению:
 
@@ -124,11 +131,11 @@
 
 Дисплей неактивен, если не задан `DISPLAY_TYPE`.
 
-* `DISPLAY_ADDRESS` - I2C адрес дисплея (по умолчанию `0x3C`)
+* `DISPLAY_ADDRESS` - I2C адрес дисплея (по умолчанию `0x3C`).
 
 Значения ниже не рекомендуются к изменению:
 
-* `DISPLAY_UPDATE_INTERVAL` - время обновления информации на дисплее в ms (по умолчанию 1000 = 1s)
+* `DISPLAY_UPDATE_INTERVAL` - время обновления информации на дисплее в ms (по умолчанию 1000 = 1s).
 
 ### Кнопки
 
