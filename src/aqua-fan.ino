@@ -68,7 +68,6 @@ void loop() {
     buttonLoop();
     displayLoop();
   #endif
-
 #endif   // !AQUA_FAN_SLAVE
 
 #ifdef AQUA_FAN_MASTER

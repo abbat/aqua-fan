@@ -16,6 +16,23 @@
 // https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WebServer
 #include <ESP8266WebServer.h>
 //----------------------------------------------------------------------------------------------
+#ifndef HOSTNAME
+  #define HOSTNAME "aqua-fan"
+#endif
+//----------------------------------------------------------------------------------------------
+#ifndef NTP_SERVER_0
+  #define NTP_SERVER_0 "0.ru.pool.ntp.org"
+#endif
+#ifndef NTP_SERVER_1
+  #define NTP_SERVER_1 "1.ru.pool.ntp.org"
+#endif
+#ifndef NTP_SERVER_2
+  #define NTP_SERVER_2 "2.ru.pool.ntp.org"
+#endif
+#ifndef NTP_TIMEZONE
+  #define NTP_TIMEZONE "UTC"
+#endif
+//----------------------------------------------------------------------------------------------
 static ESP8266WebServer web_server(80);
 //----------------------------------------------------------------------------------------------
 
@@ -118,8 +135,11 @@ void httpSettings() {
 bool wifiSetup() {
   // init wifi
   WiFi.mode(WIFI_STA);
+  WiFi.hostname(HOSTNAME);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  configTime("UTC", "pool.ntp.org");
+
+  // setup local time
+  configTime(NTP_TIMEZONE, NTP_SERVER_0, NTP_SERVER_1, NTP_SERVER_2);
 
   // init webserver
   web_server.on("/status",   httpStatus);
@@ -128,7 +148,7 @@ bool wifiSetup() {
   web_server.begin();
 
   // init on air update
-  ArduinoOTA.setHostname("aqua-fan");
+  ArduinoOTA.setHostname(HOSTNAME);
   ArduinoOTA.setPort(8266);
   ArduinoOTA.begin();
 
@@ -137,7 +157,7 @@ bool wifiSetup() {
 //----------------------------------------------------------------------------------------------
 
 void wifiLoop() {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.isConnected() == true) {
     web_server.handleClient();
     ArduinoOTA.handle();
   }
