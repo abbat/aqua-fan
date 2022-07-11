@@ -238,10 +238,10 @@ bool controllerSetup() {
   }
 
   // update max rpm
-  delay(2000);
-  updateRPM();
-  delay(2000);
-  updateRPM();
+  for (byte i = 0; i < 2; i++) {
+    delay(FAN_UPDATE_INTERVAL);
+    updateRPM();
+  }
 
   // stop fans
   for (byte i = 0; i < fan_count; i++) {
@@ -249,7 +249,7 @@ bool controllerSetup() {
   }
 
   // wait for fans stopped
-  delay(3000);
+  delay(2 * FAN_UPDATE_INTERVAL);
 
   // reset rpm
   updateRPM();
