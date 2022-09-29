@@ -64,7 +64,7 @@ with os.popen('cat {0}'.format(sys.argv[1])) as f:
             s = "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}".format(int(time.mktime(t.timetuple())), t.year, t.month, t.day, t.hour, t.minute, t.second)
 
             for v in result:
-                if v == 'None':
+                if v == None:
                     raise Exception('None value')
                 s += "\t{0}".format(v)
 
