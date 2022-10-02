@@ -142,14 +142,15 @@ void updateDirections()
 {
   #ifndef WATER_TEMPERATURE_SENSOR_NOISE
     #if PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_MLX90614
-      // when fans stopped experimental σ ~ 0.03 (±0.09°C) ~ 0.1
+      // when fans stopped and LED off experimental σ ~ 0.12 (±0.36°C, but average is shifted down to -0.05°C => 0.31°C)
+      // when fans stopped and LED on  experimental σ ~ 0.10 (±0.29°C, but average is shifted up   to +0.59°C => 0.88°C)
       #ifndef WATER_TEMPERATURE_SENSOR_NOISE_UPPER
-        #define WATER_TEMPERATURE_SENSOR_NOISE_UPPER 0.1
+        // do not heating, start asap
+        #define WATER_TEMPERATURE_SENSOR_NOISE_UPPER 0.31
       #endif
-      // when fans running experimental σ ~ 0.14 (±0.42°C, but average is shifted down to ~0.206°C)
-      // TODO: recheck it!!!
+      // when fans running experimental σ ~ 0.20 (±0.60°C, but average is shifted down to -0.19°C => 0.79°C)
       #ifndef WATER_TEMPERATURE_SENSOR_NOISE_LOWER
-        #define WATER_TEMPERATURE_SENSOR_NOISE_LOWER 0.3
+        #define WATER_TEMPERATURE_SENSOR_NOISE_LOWER 0.79
       #endif
     #elif PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
       // 0.0625 * 1.5 = 0.09375 ~ 0.1
@@ -189,10 +190,12 @@ void updateDirections()
     return;
   }
 
-  // linear fan speed model
+  // fan speed model
   if (dt >= FAN_SPEED_TEMPERATURE_WINDOW) {
+    // maximum speed if delta too high
     dt = 1.0;
   } else {
+    // linear speed in temperature window
     dt = (dt + WATER_TEMPERATURE_SENSOR_NOISE_LOWER) / (FAN_SPEED_TEMPERATURE_WINDOW + WATER_TEMPERATURE_SENSOR_NOISE_LOWER);
   }
 
@@ -207,7 +210,7 @@ void updateDirections()
     }
   }
 
-  // so, set fan speed base, rpm
+  // so, set fan speed base in rpm (but do not stop it)
   for (byte i = 0; i < fan_count; i++) {
     word base = dt * fan[i].hirpm;
     fan[i].base = (base == 0 ? 1 : base);
