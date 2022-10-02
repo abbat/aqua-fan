@@ -137,21 +137,28 @@ void updateFans() {
   }
 }
 //----------------------------------------------------------------------------------------------
+#ifdef FAN_SPEED_NOISE_MULTIPLER
+inline double log_base(double value, double base) {
+  if (base == M_E) {
+    return log(value);
+  } else if (base == 10.0) {
+    return log10(value);
+  } else if (base == 1.0) {
+    return value;
+  } else if (base <= 0.0) {
+    return 0.0;
+  }
+
+  return log(value) / log(base);
+}
+#endif
+//----------------------------------------------------------------------------------------------
 
 void updateDirections()
 {
   #ifndef WATER_TEMPERATURE_SENSOR_NOISE
     #if PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_MLX90614
-      // when fans stopped and LED off experimental σ ~ 0.12 (±0.36°C, but average is shifted down to -0.05°C => 0.31°C)
-      // when fans stopped and LED on  experimental σ ~ 0.10 (±0.29°C, but average is shifted up   to +0.59°C => 0.88°C)
-      #ifndef WATER_TEMPERATURE_SENSOR_NOISE_UPPER
-        // do not heating, start asap
-        #define WATER_TEMPERATURE_SENSOR_NOISE_UPPER 0.31
-      #endif
-      // when fans running experimental σ ~ 0.20 (±0.60°C, but average is shifted down to -0.19°C => 0.79°C)
-      #ifndef WATER_TEMPERATURE_SENSOR_NOISE_LOWER
-        #define WATER_TEMPERATURE_SENSOR_NOISE_LOWER 0.79
-      #endif
+      #define WATER_TEMPERATURE_SENSOR_NOISE 0.3
     #elif PRIMARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
       // 0.0625 * 1.5 = 0.09375 ~ 0.1
       #define WATER_TEMPERATURE_SENSOR_NOISE 0.1
@@ -197,6 +204,12 @@ void updateDirections()
   } else {
     // linear speed in temperature window
     dt = (dt + WATER_TEMPERATURE_SENSOR_NOISE_LOWER) / (FAN_SPEED_TEMPERATURE_WINDOW + WATER_TEMPERATURE_SENSOR_NOISE_LOWER);
+
+    // logarithm speed in temperature window
+    #ifdef FAN_SPEED_NOISE_MULTIPLER
+      // FAN_SPEED_NOISE_MULTIPLER must be (0..1) for lower noise or (1..∞) for more agressive
+      dt = log_base(dt * (FAN_SPEED_NOISE_MULTIPLER - 1.0) + 1.0, FAN_SPEED_NOISE_MULTIPLER);
+    #endif
   }
 
   // limit rpm to range min/max fan speed
