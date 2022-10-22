@@ -515,7 +515,7 @@ bool displaySetup() {
         extra_sensor_index++;
       }
 
-      if (extra_sensor_index == 0) {
+      if (extra_sensor_index == 0 && haveSecondaryWaterTemperature() == true) {
         extra_sensor_display[extra_sensor_index].sensor_cb  = secondaryWaterTemperature;
         extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraTemperature;
         extra_sensor_index++;

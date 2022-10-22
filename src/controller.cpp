@@ -137,7 +137,7 @@ void updateFans() {
   }
 }
 //----------------------------------------------------------------------------------------------
-#ifdef FAN_SPEED_NOISE_MULTIPLER
+#if defined(FAN_SPEED_NOISE_MULTIPLER) || defined(FAN_SPEED_NOISE_HUMIDITY)
 inline double log_base(double value, double base) {
   if (base == M_E) {
     return log(value);
@@ -151,7 +151,7 @@ inline double log_base(double value, double base) {
 
   return log(value) / log(base);
 }
-#endif
+#endif   // FAN_SPEED_NOISE_MULTIPLER || FAN_SPEED_NOISE_HUMIDITY
 //----------------------------------------------------------------------------------------------
 
 void updateDirections()
@@ -206,9 +206,19 @@ void updateDirections()
     dt = (dt + WATER_TEMPERATURE_SENSOR_NOISE_LOWER) / (FAN_SPEED_TEMPERATURE_WINDOW + WATER_TEMPERATURE_SENSOR_NOISE_LOWER);
 
     // logarithm speed in temperature window
-    #ifdef FAN_SPEED_NOISE_MULTIPLER
-      // FAN_SPEED_NOISE_MULTIPLER must be (0..1) for lower noise or (1..∞) for more agressive
-      dt = log_base(dt * (FAN_SPEED_NOISE_MULTIPLER - 1.0) + 1.0, FAN_SPEED_NOISE_MULTIPLER);
+    #if defined(FAN_SPEED_NOISE_HUMIDITY)
+        double base = humidity();
+        if (base == HUMIDITY_NULL_VALUE) {
+          base = M_E;     // like ~27% humidity
+        } else if (base < 1.0) {
+          base = 0.1;     // like 1% humidity
+        } else {
+          base /= 10.0;   // map 1-100% humidity to 0.1-10 base
+        }
+        dt = log_base(dt * (base - 1.0) + 1.0, base);
+    #elif defined(FAN_SPEED_NOISE_MULTIPLER)
+        // FAN_SPEED_NOISE_MULTIPLER must be (0..1) for lower noise or (1..∞) for more agressive
+        dt = log_base(dt * (FAN_SPEED_NOISE_MULTIPLER - 1.0) + 1.0, FAN_SPEED_NOISE_MULTIPLER);
     #endif
   }
 
