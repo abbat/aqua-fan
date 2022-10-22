@@ -134,6 +134,30 @@ void displayUpdateExtraPressure(byte x, byte y, double value) {
 }
 //----------------------------------------------------------------------------------------------
 
+void displayUpdateExtraLight(byte x, byte y, double value) {
+  #ifdef DISPLAY_TYPE_SSD1306
+    display.setCursorXY(x, y);
+    if (value != LIGHT_NULL_VALUE) {
+      if (value < 10 || (value >= 100 && value < 1000)) {
+        display.print(F(" "));
+      } else if (value < 100) {
+        display.print(F("  "));
+      } else if (value < 1000) {
+        display.print(F(" "));
+      }
+      if (value < 10) {
+        display.print(value, 1);
+      } else {
+        display.print((word)value);
+      }
+      display.print(F("L"));
+    } else {
+      display.print(F("     "));
+    }
+  #endif   // DISPLAY_TYPE_SSD1306
+}
+//----------------------------------------------------------------------------------------------
+
 void displayUpdate() {
   #ifdef DISPLAY_TYPE_SSD1306
     // primary water temperature (main information)
@@ -485,6 +509,7 @@ bool displaySetup() {
   extra_sensor_count =
     (haveHumidity()           == true ? 1 : 0) +
     (havePressure()           == true ? 1 : 0) +
+    (haveLight()              == true ? 1 : 0) +
     (haveAmbientTemperature() == true ? 1 : 0);
 
   if (extra_sensor_count == 0 && haveSecondaryWaterTemperature() == true) {
@@ -512,6 +537,12 @@ bool displaySetup() {
       if (havePressure() == true) {
         extra_sensor_display[extra_sensor_index].sensor_cb  = pressure;
         extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraPressure;
+        extra_sensor_index++;
+      }
+
+      if (haveLight() == true) {
+        extra_sensor_display[extra_sensor_index].sensor_cb  = light;
+        extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraLight;
         extra_sensor_index++;
       }
 

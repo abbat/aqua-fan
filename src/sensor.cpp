@@ -29,6 +29,11 @@
 // maximum pressure for errors control, Pa (~817.5 mm Hg)
 #define PRESSURE_MAX_VALUE  109000
 //----------------------------------------------------------------------------------------------
+// minimum light for errors control, Lx
+#define LIGHT_MIN_VALUE  0
+// maximum light for errors control, Lx
+#define LIGHT_MAX_VALUE  8000
+//----------------------------------------------------------------------------------------------
 #if defined(WATER_TEMPERATURE_SENSOR) && !defined(PRIMARY_WATER_TEMPERATURE_SENSOR)
   #define PRIMARY_WATER_TEMPERATURE_SENSOR WATER_TEMPERATURE_SENSOR
 #endif
@@ -230,6 +235,32 @@
 
 #endif   // SHT-3X
 
+// BH1750
+#if EXTERNAL_SENSOR_0 == EXTERNAL_SENSOR_BH1750 || \
+    EXTERNAL_SENSOR_1 == EXTERNAL_SENSOR_BH1750 || \
+    EXTERNAL_SENSOR_2 == EXTERNAL_SENSOR_BH1750
+
+  #define HAVE_BH1750
+  #define HAVE_STANDARD_SENSOR
+
+  #ifndef HAVE_LIGHT_SENSOR
+    #define HAVE_LIGHT_SENSOR
+  #endif
+
+  // https://github.com/claws/BH1750
+  #include <BH1750.h>
+
+  static BH1750 bh1750_sensor;
+
+  #ifndef BH1750_LIGHT_SHIFT
+    #define BH1750_LIGHT_SHIFT 0
+  #endif
+
+  static double bh1750_light       = LIGHT_NULL_VALUE;
+  static double bh1750_light_shift = BH1750_LIGHT_SHIFT;
+
+#endif   // BH1750
+
 //----------------------------------------------------------------------------------------------
 // extra checks
 //----------------------------------------------------------------------------------------------
@@ -332,6 +363,16 @@ bool sensorSetup() {
     }
   #endif   // HAVE_SHT3X
 
+  #ifdef HAVE_BH1750
+    if (bh1750_sensor.begin(BH1750::CONTINUOUS_HIGH_RES_MODE_2) == false) {
+      result = false;
+    } else {
+      // 0 - 8000 Lx (LSP for water plants), 410 ms typical, 614 ms max
+      // illuminance per 1 count, Lx = 1 / 1.2 * (69 / X) / 2, where X is MTreg
+      bh1750_sensor.setMTreg(236);
+    }
+  #endif   // HAVE_BH1750
+
   #ifdef HAVE_FAST_SENSOR
     fast_sensor_timer.setTimeOutTime(FAST_SENSOR_UPDATE_INTERVAL);
     fast_sensor_timer.reset();
@@ -432,6 +473,15 @@ void updateStandardSensors() {
 
     ds18b20_water_temperature_filtered = waterTemperatureFilter(ds18b20_water_temperature, ds18b20_water_temperature_filtered, DS18B20_WATER_TEMPERATURE_FILTER);
   #endif   // HAVE_DS18B20
+
+  #ifdef HAVE_BH1750
+    if (bh1750_sensor.measurementReady() == true) {
+      bh1750_light = bh1750_sensor.readLightLevel() + bh1750_light_shift;
+      if (bh1750_light < LIGHT_MIN_VALUE || bh1750_light > LIGHT_MAX_VALUE) {
+        bh1750_light = LIGHT_NULL_VALUE;
+      }
+    }
+  #endif   // HAVE_BH1750
 }
 #endif   // HAVE_STANDARD_SENSOR
 //----------------------------------------------------------------------------------------------
@@ -610,6 +660,24 @@ double pressure() {
     return PRESSURE_NULL_VALUE;
   #endif
 }
+//----------------------------------------------------------------------------------------------
+
+bool haveLight() {
+  #ifdef HAVE_LIGHT_SENSOR
+    return true;
+  #else
+    return false;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+double light() {
+  #ifdef HAVE_BH1750
+    return bh1750_light;
+  #else
+    return LIGHT_NULL_VALUE;
+  #endif
+}
 
 //----------------------------------------------------------------------------------------------
 #ifdef AQUA_FAN_MASTER
@@ -708,6 +776,17 @@ void serializeSensors(JsonArray& json_sensors) {
       json_sensor["role"]    = "external";
     }
   #endif   // HAVE_SHT3X
+
+  #ifdef HAVE_BH1750
+    if (bh1750_light != LIGHT_NULL_VALUE) {
+      JsonObject json_sensor = json_sensors.createNestedObject();
+      json_sensor["sensor"]  = "BH1750";
+      json_sensor["type"]    = "light";
+      json_sensor["value"]   = bh1750_light;
+      json_sensor["unit"]    = "Lx";
+      json_sensor["role"]    = "external";
+    }
+  #endif   // HAVE_BH1750
 }
 //----------------------------------------------------------------------------------------------
 #endif   // AQUA_FAN_MASTER
