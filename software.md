@@ -21,7 +21,8 @@
 Для работы с внешними (экспериментальными) датчиками используются следующие библиотеки:
 
 * [Adafruit BME280 Library](https://github.com/adafruit/Adafruit_BME280_Library) - `BME280`;
-* [arduino-sht](https://github.com/Sensirion/arduino-sht) - `SHT-3X` (`SHT-30`, `SHT-31`, `SHT-35`, `SHT-85`).
+* [arduino-sht](https://github.com/Sensirion/arduino-sht) - `SHT-3X` (`SHT-30`, `SHT-31`, `SHT-35`, `SHT-85`);
+* [BH1750](https://github.com/claws/BH1750) - `BH1750`.
 
 Все эти библиотеки могут быть установлены через менеджер библиотек `Arduino IDE`.
 
@@ -116,6 +117,10 @@
 
 * `SHT3X_AMBIENT_TEMPERATURE_SHIFT` - поправка датчика температуры окружающего воздуха в °C (по умолчанию 0);
 * `SHT3X_HUMIDITY_SHIFT` - поправка датчика влажности окружающего воздуха в % (по умолчанию 0).
+
+**BH1750**
+
+* `BH1750_LIGHT_SHIFT` - поправка датчика освещения в Lx (по умолчанию 0).
 
 ### Вентиляторы
 
