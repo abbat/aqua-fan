@@ -28,8 +28,6 @@
 #define PRESSURE_MIN_VALUE  85000
 // maximum pressure for errors control, Pa (~817.5 mm Hg)
 #define PRESSURE_MAX_VALUE  109000
-// Pa in mm Hg
-#define PRESSURE_PA_IN_MMHG 133.3223684
 //----------------------------------------------------------------------------------------------
 #if defined(WATER_TEMPERATURE_SENSOR) && !defined(PRIMARY_WATER_TEMPERATURE_SENSOR)
   #define PRIMARY_WATER_TEMPERATURE_SENSOR WATER_TEMPERATURE_SENSOR
@@ -91,6 +89,10 @@
   #define HAVE_MLX90614
   #define HAVE_FAST_SENSOR
 
+  #ifndef HAVE_AMBIENT_SENSOR
+    #define HAVE_AMBIENT_SENSOR
+  #endif
+
   // GY-906 MLX90614-XXX, resolution 0.02°C
   // - BAA - precision ±0.50°C (single zone, 90° FOV)
   // - BCC - precision ±0.50°C (gradient compensated, 35° FOV)
@@ -151,6 +153,18 @@
   #define HAVE_BME280
   #define HAVE_SLOW_SENSOR
 
+  #ifndef HAVE_AMBIENT_SENSOR
+    #define HAVE_AMBIENT_SENSOR
+  #endif
+
+  #ifndef HAVE_HUMIDITY_SENSOR
+    #define HAVE_HUMIDITY_SENSOR
+  #endif
+
+  #ifndef HAVE_PRESSURE_SENSOR
+    #define HAVE_PRESSURE_SENSOR
+  #endif
+
   // https://github.com/adafruit/Adafruit_BME280_Library
   #include <Adafruit_BME280.h>
 
@@ -186,6 +200,14 @@
 
   #define HAVE_SHT3X
   #define HAVE_SLOW_SENSOR
+
+  #ifndef HAVE_AMBIENT_SENSOR
+    #define HAVE_AMBIENT_SENSOR
+  #endif
+
+  #ifndef HAVE_HUMIDITY_SENSOR
+    #define HAVE_HUMIDITY_SENSOR
+  #endif
 
   // https://github.com/Sensirion/arduino-sht
   #include <SHTSensor.h>
@@ -509,6 +531,66 @@ double secondaryWaterTemperature() {
     return WATER_TEMPERATURE_NULL_VALUE;
   #endif
 }
+//----------------------------------------------------------------------------------------------
+
+bool haveAmbientTemperature() {
+  #ifdef HAVE_AMBIENT_SENSOR
+    return true;
+  #else
+    return false;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+double ambientTemperature() {
+  #if defined(HAVE_SHT3X)
+    return sht3x_temperature;
+  #elif defined(HAVE_BME280)
+    return bme280_temperature;
+  #elif defined(HAVE_MLX90614)
+    return mlx90614_ambient_temperature;
+  #else
+    return AMBIENT_TEMPERATURE_NULL_VALUE;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+bool haveHumidity() {
+  #ifdef HAVE_HUMIDITY_SENSOR
+    return true;
+  #else
+    return false;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+double humidity() {
+  #if defined(HAVE_SHT3X)
+    return sht3x_humidity;
+  #elif defined(HAVE_BME280)
+    return bme280_humidity;
+  #else
+    return HUMIDITY_NULL_VALUE;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+bool havePressure() {
+  #ifdef HAVE_PRESSURE_SENSOR
+    return true;
+  #else
+    return false;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
+double pressure() {
+  #ifdef HAVE_BME280
+    return bme280_pressure;
+  #else
+    return PRESSURE_NULL_VALUE;
+  #endif
+}
 
 //----------------------------------------------------------------------------------------------
 #ifdef AQUA_FAN_MASTER
@@ -583,7 +665,7 @@ void serializeSensors(JsonArray& json_sensors) {
       json_sensor["type"]    = "pressure";
       json_sensor["value"]   = bme280_pressure;
       json_sensor["unit"]    = "Pa";
-      json_sensor["mmhg"]    = word(bme280_pressure / PRESSURE_PA_IN_MMHG);
+      json_sensor["mmhg"]    = (bme280_pressure == PRESSURE_NULL_VALUE ? -1 : word(bme280_pressure / PRESSURE_PA_IN_MMHG));
       json_sensor["role"]    = "external";
     }
   #endif   // HAVE_BME280

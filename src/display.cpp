@@ -24,8 +24,15 @@
   #define DISPLAY_UPDATE_INTERVAL 1000
 #endif
 
+#ifndef DISPLAY_UPDATE_EXTRA_INTERVAL
+  // display update extra information interval, ms
+  #define DISPLAY_UPDATE_EXTRA_INTERVAL 5000
+#endif
+
 // timer for update display
 static SoftTimer display_timer;
+// timer for update display from extra sensors
+unsigned long display_extra_timer = 0;
 
 // screen id constants
 #define SCREEN_ID_DEFAULT                  0   /* default screen                */
@@ -65,11 +72,106 @@ static SoftTimer screen_timer;
   #error "Unsupported display type"
 #endif   // DISPLAY_TYPE == DISPLAY_SSD1306_XXX_XX
 //----------------------------------------------------------------------------------------------
+typedef double (*sensorValueCallback)();
+typedef void   (*displayUpdateCallback)(byte x, byte y, double value);
+
+typedef struct sensor_display_s {
+  sensorValueCallback   sensor_cb;
+  displayUpdateCallback display_cb;
+} sensor_display_t;
+
+static byte              extra_sensor_count   = 0;
+static sensor_display_t* extra_sensor_display = NULL;
+//----------------------------------------------------------------------------------------------
+
+void displayUpdateExtraTemperature(byte x, byte y, double value) {
+  #ifdef DISPLAY_TYPE_SSD1306
+    display.setCursorXY(x, y);
+    if (value != AMBIENT_TEMPERATURE_NULL_VALUE) {
+      if (value < 10) {
+        display.print(F(" "));
+      }
+      display.print(value, 1);
+      display.print(F("C"));
+    } else {
+      display.print(F("     "));
+    }
+  #endif   // DISPLAY_TYPE_SSD1306
+}
+//----------------------------------------------------------------------------------------------
+
+void displayUpdateExtraHumidity(byte x, byte y, double value) {
+  #ifdef DISPLAY_TYPE_SSD1306
+    display.setCursorXY(x, y);
+    if (value != HUMIDITY_NULL_VALUE) {
+      byte h = value;
+      if (h < 10) {
+        display.print(F("   "));
+      } else if (h < 100) {
+        display.print(F("  "));
+      }
+      display.print(h);
+      display.print(F("%"));
+    } else {
+      display.print(F("     "));
+    }
+  #endif   // DISPLAY_TYPE_SSD1306
+}
+//----------------------------------------------------------------------------------------------
+
+void displayUpdateExtraPressure(byte x, byte y, double value) {
+  #ifdef DISPLAY_TYPE_SSD1306
+    display.setCursorXY(x, y);
+    if (value != PRESSURE_NULL_VALUE) {
+      word p = value / PRESSURE_PA_IN_MMHG;
+      // pressure in mm/Hg always 3 digits (641 - 816 mm/Hg, 560 mm/Hg in hurricate center)
+      display.print(p);
+      display.print(F("mm"));
+    } else {
+      display.print(F("     "));
+    }
+  #endif   // DISPLAY_TYPE_SSD1306
+}
+//----------------------------------------------------------------------------------------------
 
 void displayUpdate() {
   #ifdef DISPLAY_TYPE_SSD1306
+    // primary water temperature (main information)
+    display.setScale(3);
+    display.setCursorXY(47, 8);
+
+    double t = primaryWaterTemperature();
+    if (t != WATER_TEMPERATURE_NULL_VALUE) {
+      if (t < 10) {
+        display.print(F(" "));
+      }
+      display.print(t, 1);
+    } else {
+      display.print(F("    "));
+    }
+
+    display.setScale(2);
+    display.setCursorXY(65, 40);
+
+    // fan speed (background information)
+    byte fs = cachedFanSpeed() * 100;
+    if (fs == 0) {
+      display.print(F("^-^"));
+    } else if (fs == 100) {
+      display.print(F("max"));
+    } else {
+      if (fs < 10) {
+        display.print(F(" "));
+      }
+      display.print(fs);
+      display.print(F("%"));
+    }
+
+    // any (mostly useless) extra information
+    // we have 4 row x 5 col area and two fan states (on/off)
     display.setScale(1);
 
+    // rpm for each fan
     for (byte i = 0; i < cachedFanCount(); i++) {
       display.setCursorXY(6, 8 + i * 12);
       display.print(F("*"));
@@ -89,47 +191,23 @@ void displayUpdate() {
       }
     }
 
-    #ifdef SECONDARY_WATER_TEMPERATURE_SENSOR
-      display.setCursorXY(6, 48);
-      { double t = secondaryWaterTemperature();
-      if (t != WATER_TEMPERATURE_NULL_VALUE) {
-        if (t < 10) {
-          display.print(F(" "));
-        }
-        display.print(t, 1);
-        display.print(F("C"));
-      } else {
-        display.print(F("     "));
-      }}
-    #endif   // SECONDARY_WATER_TEMPERATURE_SENSOR
+    // other information from extra sensors
+    if (extra_sensor_count > 0) {
+      byte x = 6;
+      byte y = 48;
 
-    display.setScale(3);
-    display.setCursorXY(47, 8);
+      static byte extra_sensor_index = 0;
+      extra_sensor_display[extra_sensor_index].display_cb(x, y, extra_sensor_display[extra_sensor_index].sensor_cb());
 
-    { double t = primaryWaterTemperature();
-    if (t != WATER_TEMPERATURE_NULL_VALUE) {
-      if (t < 10) {
-        display.print(F(" "));
+      display_extra_timer += DISPLAY_UPDATE_INTERVAL;
+      if (display_extra_timer >= DISPLAY_UPDATE_EXTRA_INTERVAL) {
+        extra_sensor_index++;
+        display_extra_timer = 0;
       }
-      display.print(t, 1);
-    } else {
-      display.print(F("    "));
-    }}
 
-    display.setScale(2);
-    display.setCursorXY(65, 40);
-
-    byte fs = cachedFanSpeed() * 100;
-    if (fs == 0) {
-      display.print(F("^-^"));
-    } else if (fs == 100) {
-      display.print(F("max"));
-    } else {
-      if (fs < 10) {
-        display.print(F(" "));
+      if (extra_sensor_index >= extra_sensor_count) {
+        extra_sensor_index = 0;
       }
-      display.print(fs);
-      display.print(F("%"));
     }
 
     display.update();
@@ -359,10 +437,46 @@ bool displaySetup() {
     display.update();
   #endif   // DISPLAY_TYPE_SSD1306
 
+  // callbacks to display information from extra sensors
+  extra_sensor_count =
+    (haveHumidity()           == true ? 1 : 0) +
+    (havePressure()           == true ? 1 : 0) +
+    (haveAmbientTemperature() == true ? 1 : 0);
+
+  if (extra_sensor_count > 0) {
+    extra_sensor_display = (sensor_display_t*)malloc(extra_sensor_count * sizeof(sensor_display_t));
+    if (extra_sensor_display != NULL) {
+      memset(extra_sensor_display, 0, extra_sensor_count * sizeof(sensor_display_t));
+
+      byte extra_sensor_index = 0;
+      if (haveAmbientTemperature() == true) {
+        extra_sensor_display[extra_sensor_index].sensor_cb  = ambientTemperature;
+        extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraTemperature;
+        extra_sensor_index++;
+      }
+
+      if (haveHumidity() == true) {
+        extra_sensor_display[extra_sensor_index].sensor_cb  = humidity;
+        extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraHumidity;
+        extra_sensor_index++;
+      }
+
+      if (havePressure() == true) {
+        extra_sensor_display[extra_sensor_index].sensor_cb  = pressure;
+        extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraPressure;
+        extra_sensor_index++;
+      }
+    } else {
+      extra_sensor_count = 0;
+    }
+  }
+
+  // button callbacks
   onButtonUpCallback(onButtonUp);
   onButtonDownCallback(onButtonDown);
   onButtonModeCallback(onButtonMode);
 
+  // display update timers
   screen_timer.setTimeOutTime(5000);
 
   display_timer.setTimeOutTime(DISPLAY_UPDATE_INTERVAL);
