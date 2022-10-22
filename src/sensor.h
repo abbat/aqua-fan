@@ -23,6 +23,8 @@ bool sensorSetup();
 void sensorLoop();
 //----------------------------------------------------------------------------------------------
 double primaryWaterTemperature();
+//----------------------------------------------------------------------------------------------
+bool   haveSecondaryWaterTemperature();
 double secondaryWaterTemperature();
 //----------------------------------------------------------------------------------------------
 bool   haveAmbientTemperature();

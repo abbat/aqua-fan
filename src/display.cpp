@@ -167,46 +167,90 @@ void displayUpdate() {
       display.print(F("%"));
     }
 
+    //
     // any (mostly useless) extra information
     // we have 4 row x 5 col area and two fan states (on/off)
+    //
+
     display.setScale(1);
 
-    // rpm for each fan
-    for (byte i = 0; i < cachedFanCount(); i++) {
-      display.setCursorXY(6, 8 + i * 12);
-      display.print(F("*"));
+    byte x = DISPLAY_SCALE_1_WIDTH;
+    byte y = DISPLAY_SCALE_1_HEIGHT;
+    const byte fan_row_height = 12;
 
-      word rpm = cachedFanRPM(i);
-      if (rpm == 0) {
-        display.print(F(" off"));
-      } else {
-        if (rpm < 10) {
-          display.print(F("   "));
-        } else if (rpm < 100) {
-          display.print(F("  "));
-        } else if (rpm < 1000) {
-          display.print(F(" "));
+    // rpm for each fan when fans on
+    if (fs > 0 || extra_sensor_count == 0) {
+      for (byte i = 0; i < cachedFanCount(); i++) {
+        display.setCursorXY(x, y);
+        display.print(F("*"));
+
+        word rpm = cachedFanRPM(i);
+        if (rpm == 0) {
+          display.print(F(" off"));
+        } else {
+          if (rpm < 10) {
+            display.print(F("   "));
+          } else if (rpm < 100) {
+            display.print(F("  "));
+          } else if (rpm < 1000) {
+            display.print(F(" "));
+          }
+          display.print(rpm);
         }
-        display.print(rpm);
+
+        y += fan_row_height;
       }
     }
 
     // other information from extra sensors
     if (extra_sensor_count > 0) {
-      byte x = 6;
-      byte y = 48;
+      byte free_fan_rows;
+      if (fs == 0) {
+        // when fans off we can use 2 rows to display extra information
+        free_fan_rows = 2;
 
-      static byte extra_sensor_index = 0;
-      extra_sensor_display[extra_sensor_index].display_cb(x, y, extra_sensor_display[extra_sensor_index].sensor_cb());
+        // display all fans off
+        display.setCursorXY(x, y);
+        display.print(F("*"));
+        display.print(F(" off"));
 
-      display_extra_timer += DISPLAY_UPDATE_INTERVAL;
-      if (display_extra_timer >= DISPLAY_UPDATE_EXTRA_INTERVAL) {
-        extra_sensor_index++;
-        display_extra_timer = 0;
+        y += fan_row_height;
+      } else {
+        // when fans on and fan count < 3 we can use 1 or 2 rows to display extra information
+        free_fan_rows = 3 - cachedFanCount();
       }
 
-      if (extra_sensor_index >= extra_sensor_count) {
-        extra_sensor_index = 0;
+      // display extra information in fan rows
+      for (byte i = 0; i < extra_sensor_count && i < free_fan_rows; i++) {
+        extra_sensor_display[i].display_cb(x, y, extra_sensor_display[i].sensor_cb());
+        y += fan_row_height;
+      }
+
+      // display extra information in extra row
+      y = DISPLAY_SCALE_1_HEIGHT * 6;
+
+      if (extra_sensor_count > free_fan_rows) {
+        // rotate extra row only if we have to display more than one value
+        if (extra_sensor_count == free_fan_rows + 1) {
+          extra_sensor_display[free_fan_rows].display_cb(x, y, extra_sensor_display[free_fan_rows].sensor_cb());
+        } else {
+          static byte extra_sensor_index = 0;
+          extra_sensor_display[extra_sensor_index].display_cb(x, y, extra_sensor_display[extra_sensor_index].sensor_cb());
+
+          display_extra_timer += DISPLAY_UPDATE_INTERVAL;
+          if (display_extra_timer >= DISPLAY_UPDATE_EXTRA_INTERVAL) {
+            extra_sensor_index++;
+            display_extra_timer = 0;
+          }
+
+          if (extra_sensor_index >= extra_sensor_count) {
+            extra_sensor_index = free_fan_rows;
+          }
+        }
+      } else {
+        // clear extra row if no extra information to display
+        display.setCursorXY(x, y);
+        display.print(F("     "));
       }
     }
 
@@ -443,6 +487,10 @@ bool displaySetup() {
     (havePressure()           == true ? 1 : 0) +
     (haveAmbientTemperature() == true ? 1 : 0);
 
+  if (extra_sensor_count == 0 && haveSecondaryWaterTemperature() == true) {
+    extra_sensor_count = 1;
+  }
+
   if (extra_sensor_count > 0) {
     extra_sensor_display = (sensor_display_t*)malloc(extra_sensor_count * sizeof(sensor_display_t));
     if (extra_sensor_display != NULL) {
@@ -464,6 +512,12 @@ bool displaySetup() {
       if (havePressure() == true) {
         extra_sensor_display[extra_sensor_index].sensor_cb  = pressure;
         extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraPressure;
+        extra_sensor_index++;
+      }
+
+      if (extra_sensor_index == 0) {
+        extra_sensor_display[extra_sensor_index].sensor_cb  = secondaryWaterTemperature;
+        extra_sensor_display[extra_sensor_index].display_cb = displayUpdateExtraTemperature;
         extra_sensor_index++;
       }
     } else {

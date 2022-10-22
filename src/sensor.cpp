@@ -518,6 +518,15 @@ double primaryWaterTemperature() {
 }
 //----------------------------------------------------------------------------------------------
 
+bool haveSecondaryWaterTemperature() {
+  #ifdef SECONDARY_WATER_TEMPERATURE_SENSOR
+    return true;
+  #else
+    return false;
+  #endif
+}
+//----------------------------------------------------------------------------------------------
+
 double secondaryWaterTemperature() {
   #ifdef SECONDARY_WATER_TEMPERATURE_SENSOR
     #if SECONDARY_WATER_TEMPERATURE_SENSOR == WATER_TEMPERATURE_SENSOR_DS18B20
