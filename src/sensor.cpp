@@ -421,20 +421,34 @@ double ambientTemperatureFilter(double current, double previous, byte filter) {
 #ifdef HAVE_SLOW_SENSOR
 void updateSlowSensors() {
   #ifdef HAVE_BME280
-    // TODO: sometimes strange values - test for NaN?
-    bme280_temperature = bme280_sensor.readTemperature() + bme280_temperature_shift;
-    if (bme280_temperature < AMBIENT_TEMPERATURE_MIN_VALUE || bme280_temperature > AMBIENT_TEMPERATURE_MAX_VALUE) {
+    bme280_temperature = bme280_sensor.readTemperature();
+    if (isnan(bme280_temperature) == 1) {
       bme280_temperature = AMBIENT_TEMPERATURE_NULL_VALUE;
+    } else {
+      bme280_temperature += bme280_temperature_shift;
+      if (bme280_temperature < AMBIENT_TEMPERATURE_MIN_VALUE || bme280_temperature > AMBIENT_TEMPERATURE_MAX_VALUE) {
+        bme280_temperature = AMBIENT_TEMPERATURE_NULL_VALUE;
+      }
     }
 
-    bme280_humidity = bme280_sensor.readHumidity() + bme280_humidity_shift;
-    if (bme280_humidity < HUMIDITY_MIN_VALUE || bme280_humidity > HUMIDITY_MAX_VALUE) {
+    bme280_humidity = bme280_sensor.readHumidity();
+    if (isnan(bme280_humidity) == 1) {
       bme280_humidity = HUMIDITY_NULL_VALUE;
+    } else {
+      bme280_humidity += bme280_humidity_shift;
+      if (bme280_humidity < HUMIDITY_MIN_VALUE || bme280_humidity > HUMIDITY_MAX_VALUE) {
+        bme280_humidity = HUMIDITY_NULL_VALUE;
+      }
     }
 
-    bme280_pressure = bme280_sensor.readPressure() + bme280_pressure_shift;
-    if (bme280_pressure < PRESSURE_MIN_VALUE || bme280_pressure > PRESSURE_MAX_VALUE) {
+    bme280_pressure = bme280_sensor.readPressure();
+    if (isnan(bme280_pressure) == 1) {
       bme280_pressure = PRESSURE_NULL_VALUE;
+    } else {
+      bme280_pressure += bme280_pressure_shift;
+      if (bme280_pressure < PRESSURE_MIN_VALUE || bme280_pressure > PRESSURE_MAX_VALUE) {
+        bme280_pressure = PRESSURE_NULL_VALUE;
+      }
     }
   #endif   // HAVE_BME280
 
@@ -476,9 +490,14 @@ void updateStandardSensors() {
 
   #ifdef HAVE_BH1750
     if (bh1750_sensor.measurementReady() == true) {
-      bh1750_light = bh1750_sensor.readLightLevel() + bh1750_light_shift;
-      if (bh1750_light < LIGHT_MIN_VALUE || bh1750_light > LIGHT_MAX_VALUE) {
+      bh1750_light = bh1750_sensor.readLightLevel();
+      if (bh1750_light < 0) {
         bh1750_light = LIGHT_NULL_VALUE;
+      } else {
+        bh1750_light += bh1750_light_shift;
+        if (bh1750_light < LIGHT_MIN_VALUE || bh1750_light > LIGHT_MAX_VALUE) {
+          bh1750_light = LIGHT_NULL_VALUE;
+        }
       }
     }
   #endif   // HAVE_BH1750
