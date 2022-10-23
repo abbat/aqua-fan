@@ -207,18 +207,18 @@ void updateDirections()
 
     // logarithm speed in temperature window
     #if defined(FAN_SPEED_NOISE_HUMIDITY)
-        double base = humidity();
-        if (base == HUMIDITY_NULL_VALUE) {
-          base = M_E;     // like ~27% humidity
-        } else if (base < 1.0) {
-          base = 0.1;     // like 1% humidity
-        } else {
-          base /= 10.0;   // map 1-100% humidity to 0.1-10 base
-        }
-        dt = log_base(dt * (base - 1.0) + 1.0, base);
+      double base = humidity();
+      if (base == HUMIDITY_NULL_VALUE) {
+        base = M_E;     // like ~27% humidity
+      } else if (base < 1.0) {
+        base = 0.1;     // like 1% humidity
+      } else {
+        base /= 10.0;   // map 1-100% humidity to 0.1-10 base
+      }
+      dt = log_base(dt * (base - 1.0) + 1.0, base);
     #elif defined(FAN_SPEED_NOISE_MULTIPLER)
-        // FAN_SPEED_NOISE_MULTIPLER must be (0..1) for lower noise or (1..∞) for more agressive
-        dt = log_base(dt * (FAN_SPEED_NOISE_MULTIPLER - 1.0) + 1.0, FAN_SPEED_NOISE_MULTIPLER);
+      // FAN_SPEED_NOISE_MULTIPLER must be (0..1) for lower noise or (1..∞) for more agressive
+      dt = log_base(dt * (FAN_SPEED_NOISE_MULTIPLER - 1.0) + 1.0, FAN_SPEED_NOISE_MULTIPLER);
     #endif
   }
 
